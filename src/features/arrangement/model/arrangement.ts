@@ -27,12 +27,14 @@ export function createArrangement() {
     select(id: string) {
       if (tracks.some((t) => t.id === id)) selected = id;
     },
-    add(instrument: Instrument) {
+    add(instrument: Instrument, name?: string) {
       if (tracks.length >= 8)
         throw new Error("最多支持 8 条轨道，请先移除一条");
       const t: Track = {
         id: uid(),
-        name: `${instrument === "drums" ? "鼓组" : "琴键"} ${tracks.length + 1}`,
+        name:
+          name ??
+          `${instrument === "drums" ? "鼓组" : "琴键"} ${tracks.length + 1}`,
         instrument,
         color: colors[tracks.length % colors.length],
         notes: [],

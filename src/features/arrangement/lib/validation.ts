@@ -1,8 +1,33 @@
-import type { Session, Track, Note } from "@/shared/types";
+import type { Session, Track, Note, FollowSettings } from "@/shared/types";
 const object = (x: unknown): x is Record<string, unknown> =>
   !!x && typeof x === "object" && !Array.isArray(x);
 const finite = (x: unknown, min: number, max: number): x is number =>
   typeof x === "number" && Number.isFinite(x) && x >= min && x <= max;
+const STYLES = ["steady", "groove", "sparse"];
+const RANGES = ["open", "bright", "warm"];
+function validateFollow(raw: unknown, ids: ReadonlySet<string>): FollowSettings | null {
+  if (raw === null || raw === undefined) return null;
+  if (!object(raw)) throw new Error("跟随设置损坏");
+  if (
+    typeof raw.style !== "string" ||
+    !STYLES.includes(raw.style) ||
+    typeof raw.keyRange !== "string" ||
+    !RANGES.includes(raw.keyRange)
+  )
+    throw new Error("跟随风格或调性范围不受支持");
+  const trackRef = (value: unknown): string | null => {
+    if (value === null) return null;
+    if (typeof value !== "string" || !ids.has(value))
+      throw new Error("跟随目标轨道已失效，请重新选择");
+    return value;
+  };
+  return {
+    style: raw.style as FollowSettings["style"],
+    keyRange: raw.keyRange as FollowSettings["keyRange"],
+    bassTrackId: trackRef(raw.bassTrackId),
+    drumTrackId: trackRef(raw.drumTrackId),
+  };
+}
 export function validateSession(raw: unknown): Session {
   if (
     !object(raw) ||
@@ -57,5 +82,20 @@ export function validateSession(raw: unknown): Session {
     if (!object(c) || !finite(c.volume, 0, 1) || typeof c.muted !== "boolean")
       throw new Error("混音数据无效");
   }
-  return structuredClone(raw) as unknown as Session;
+  const follow = validateFollow(raw.follow, ids);
+  if (follow) {
+    const byId = new Map(
+      (raw.tracks as unknown as Track[]).map((t) => [t.id, t]),
+    );
+    if (
+      (follow.bassTrackId &&
+        byId.get(follow.bassTrackId)?.instrument !== "keys") ||
+      (follow.drumTrackId &&
+        byId.get(follow.drumTrackId)?.instrument !== "drums")
+    )
+      throw new Error("跟随目标轨道与乐器不匹配");
+  }
+  const result = structuredClone(raw) as unknown as Session;
+  result.follow = follow;
+  return result;
 }

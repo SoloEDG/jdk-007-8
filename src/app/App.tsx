@@ -4,11 +4,12 @@ import { Pads, Keyboard } from "@/features/instruments";
 import { Timeline, TrackActions } from "@/features/arrangement";
 import { RecordControls, RecordingStatus } from "@/features/recorder";
 import { MixerPanel } from "@/features/mixer";
+import { FollowPanel } from "@/features/follow";
 export function App() {
   const s = useStudio();
   if (!s) return <div className="loading">正在打开夜航工作室…</div>;
   const v = s.view(),
-    locked = v.recorder.status !== "idle";
+    locked = v.recorder.status !== "idle" || v.follow.capture.armed;
   return (
     <div className="studio-shell">
       <aside className="rail">
@@ -145,6 +146,17 @@ export function App() {
               absolute={v.transport.absolute}
             />
           </section>
+          <FollowPanel
+            view={v.follow}
+            tracks={v.arrangement.tracks}
+            onEnable={() => void s.enableFollow()}
+            onDisable={s.disableFollow}
+            onRecord={s.recordFollow}
+            onStopRecord={s.stopRecordFollow}
+            setStyle={s.setFollowStyle}
+            setKeyRange={s.setFollowKeyRange}
+            setTarget={s.setFollowTarget}
+          />
         </div>
         <footer>
           <span role="status">{v.message}</span>
