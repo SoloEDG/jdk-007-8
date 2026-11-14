@@ -1,0 +1,6 @@
+name: pinru-jdk007-1114
+services:
+  studio:
+    build: .
+    ports:
+      - "18027:80"
